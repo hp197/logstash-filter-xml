@@ -104,7 +104,14 @@ class LogStash::Filters::Xml < LogStash::Filters::Base
       end
       doc.remove_namespaces! if @remove_namespaces
       @xpath.each do |xpath_src, xpath_dest|
-        nodeset = doc.xpath(xpath_src)
+        begin
+            nodeset = doc.xpath(xpath_src)
+        rescue Nokogiri::XML::XPath::SyntaxError => e
+            event.tag("_xpathparsefailure")
+            @logger.warn("Trouble parsing the xpath expression", :source => @source, :value => value,
+                     :exception => e, :backtrace => e.backtrace)
+            return
+        end
 
         # If asking xpath for a String, like "name(/*)", we get back a
         # String instead of a NodeSet.  We normalize that here.
